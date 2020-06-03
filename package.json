@@ -1,0 +1,19 @@
+{
+  "name": "static-to-html",
+  "version": "1.0.0",
+  "description": "将特定的css,js文件内容打包进目标html文件",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hezhongjie/static-to-html.git"
+  },
+  "author": "hezhongjie132@163.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hezhongjie/static-to-html/issues"
+  },
+  "homepage": "https://github.com/hezhongjie/static-to-html#readme"
+}

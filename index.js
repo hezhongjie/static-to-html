@@ -4,14 +4,8 @@ let path = require('path');
 console.log('start...');
 
 let initConfig = {
-  buildCommander:'vue-cli-service build', // 暂时无用
   dist: './dist',
-  input: './dist/index.html', // 
-  output: './dist/index.html', // 输出的文件
-  srcReg: [
-    /app\.[0-9a-w]+\.(?:js|css)/,
-    /chunk-vendors\.[0-9a-w]+\.(?:js)/,
-  ],
+  htmls: [],
 }, fileConfig = {};
 const configPath = path.resolve('static.config.js');
 
@@ -35,71 +29,75 @@ if (fs.existsSync(configPath)) {
 }
 
 fileConfig = Object.assign({}, initConfig, fileConfig);
+if (({}).toString.call(fileConfig.htmls) === '[object Object]') fileConfig.htmls = [fileConfig.htmls];
 
-let { dist, input,output, srcReg } = fileConfig;
-let htmlStr = '';
+fileConfig.htmls.forEach(html => {
+  let htmlStr = '';
+  let { input, output, srcReg, dist = fileConfig.dist } = html;
 
-try {
-  htmlStr = fs.readFileSync(path.resolve(input)).toString();
-} catch (error) {
-  throw new Error('can not read index.html!');
-}
-
-// 获取需要替换的的link和script标签的src，
-console.log('all regExp:', srcReg);
-
-let linkOrScript = [];
-htmlStr = htmlStr.replace(/<(link|script)\b[^>]+(\/?>|><\0>)/gi, function (args) {
-  let paths = args.match(/\s(?:src|href)=('|")?([^\s>]+)\1/);
-  if (paths && paths[2]) {
-    // let src = paths[2].replace(/^\//, '');
-    let src = paths[2];
-    if (src && srcReg.some(reg => reg.test(src))) {
-      linkOrScript.push(src);
-      return '';
-    }
-  }
-  return args;
-})
-linkOrScript = new Set(linkOrScript);
-
-console.log('these files will be appended:');
-console.log(linkOrScript);
-
-let content = { css: '', js: '', };
-linkOrScript.forEach(src => {
-  let str = '';
+  // 1.获取index.html文件
   try {
-    str = fs.readFileSync(path.resolve(dist, src)).toString();
+    htmlStr = fs.readFileSync(path.resolve(input)).toString();
   } catch (error) {
-    console.warning('the file:' + src + '，can`t find');
+    throw new Error(`can not find ${input}!`);
   }
 
-  if (/\.js$/.test(src)) {
-    content.js += '<script>' + str + '</script>';
-  } else if (/\.css$/.test(src)) {
-    content.css += '<style>' + str + '</style>';
-  }
-})
+  // 2.获取需要替换的的link和script标签的src，
+  console.log('静态资源匹配规则:', srcReg);
+  let linkOrScript = [];
+  htmlStr = htmlStr.replace(/<(link|script)\b[^>]+(\/?>|><\0>)/gi, function (args) {
+    let paths = args.match(/\s(?:src|href)=('|")?([^\s>]+)\1/);
+    if (paths && paths[2]) {
+      let src = paths[2];
+      if (src && srcReg.some(reg => reg.test(src))) {
+        linkOrScript.push(src);
+        return '';
+      }
+    }
+    return args;
+  })
+  // 3.去重
+  linkOrScript = [...new Set(linkOrScript)];
 
-htmlStr = htmlStr.replace(/<\/head>|<\/html>/g, function (args) {
-  if (args === '</head>') {
-    return content.css + '</head>';
-  } else if (args === '</html>') {
-    return content.js + '</html>';
-  }
-  return args;
-});
+  console.log('these files will be appended to html:');
+  console.log(linkOrScript);
 
-let newHtml = path.resolve(output);
-// fs.writeFile(path.resolve(html), htmlStr, function (err) {
+  // 4. 将静态文件的内容分类型提取出来，并用对应的标签包裹好
+  let content = { css: '', js: '', };
+  linkOrScript.forEach(src => {
+    let str = '';
+    try {
+      str = fs.readFileSync(path.resolve(dist, src)).toString();
+    } catch (error) {
+      console.warning('the file:' + src + '，can`t find');
+    }
 
-console.log('New html file is creating:', newHtml);
+    if (/\.js$/.test(src)) {
+      content.js += '<script>' + str + '</script>';
+    } else if (/\.css$/.test(src)) {
+      content.css += '<style>' + str + '</style>';
+    }
+  })
 
-fs.writeFile(newHtml, htmlStr, function (err) {
-  if (err) {
-    console.warning(err);
-  } else {
-    console.log('Static code append html success!')
-  }
+  // 5. 将内容插入html中
+  htmlStr = htmlStr.replace(/<\/head>|<\/html>/g, function (args) {
+    if (args === '</head>') {
+      return content.css + '</head>';
+    } else if (args === '</html>') {
+      return content.js + '</html>';
+    }
+    return args;
+  });
+
+  // 6.创建新的html文件
+  let newHtml = path.resolve(output);
+  console.log(`${newHtml} is creating...`);
+
+  fs.writeFile(newHtml, htmlStr, function (err) {
+    if (err) {
+      console.warning(err);
+    } else {
+      console.log('Static code had been appended to html successfully!')
+    }
+  })
 })

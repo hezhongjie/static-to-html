@@ -15,13 +15,25 @@ vue或react的单页面项目，首页加载慢会导致白屏的问题，使用
 ```shell
 npm install --save-dev static-to-html
 ```
-3. 执行命令:需已经打包成功，生成了dist文件夹
+
+3. 创建配置文件：static.config.js,在项目的根目录。可以是一个对象或者一个返回对象的方法(参考文件：static.config.js)
+
+ 参数 | descript |类型| 默认值
+-------|------ | ------|-----------------
+ dist string |打包生成的目录| String |./dist
+ htmls|需要处理的html文件配置|[]{}|
+ input|需要处理的html文件|String|./dist/index.html
+ output|生成的html文件|String|./dist/index.html
+ srcReg|需要处理的静态文件|[]RegExg | /app\.[0-9a-w]+\.(?:js|css)/,/chunk-vendors\.[0-9a-w]+\.(?:js)/,
+
+
+4. 执行命令:需已经打包成功，生成了dist文件夹;或者使用串联命令
 
 ```node
 node ./node_modules/static-to-html/index.js
 
 ```
-4. 新增命令行：如果额外执行一次命令较麻烦，可以合并命令
+5. 新增命令行：如果额外执行一次命令较麻烦，可以合并命令
 在package.json文件中的scripts下，新增一条自己的build命令,例如：
 ```json
 {
